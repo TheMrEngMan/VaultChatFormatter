@@ -1,7 +1,9 @@
 package me.lucko.chatformatter;
 
+import me.clip.placeholderapi.PlaceholderAPI;
 import net.milkbowl.vault.chat.Chat;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -49,12 +51,16 @@ public class ChatFormatterPlugin extends JavaPlugin implements Listener {
      */
     private Chat vaultChat = null;
 
+    /** If PlaceholderAPI is installed and available to parse placeholders **/
+    private boolean PAPIAvailable = false;
+
     @Override
     public void onEnable() {
         saveDefaultConfig();
         reloadConfigValues();
         refreshVault();
         getServer().getPluginManager().registerEvents(this, this);
+        PAPIAvailable = Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null;
     }
 
     private void reloadConfigValues() {
@@ -116,6 +122,13 @@ public class ChatFormatterPlugin extends JavaPlugin implements Listener {
             format = replaceAll(SUFFIX_PLACEHOLDER_PATTERN, format, () -> colorize(this.vaultChat.getPlayerSuffix(e.getPlayer())));
         }
         format = replaceAll(NAME_PLACEHOLDER_PATTERN, format, () -> e.getPlayer().getName());
+
+        // Parse placeholders using PlaceholdersAPI if it is available
+        if(PAPIAvailable) {
+            // Format is {{placeholder}} instead of %placeholder% due to Bukkit internal formatting using % already
+            format = format.replaceAll("\\{\\{", "%").replaceAll("}}", "%");
+            format = PlaceholderAPI.setPlaceholders(e.getPlayer(), format);
+        }
 
         e.setFormat(format);
     }
